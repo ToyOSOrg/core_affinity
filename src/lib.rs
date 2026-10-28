@@ -680,6 +680,49 @@ mod netbsd {
     }
 }
 
+// ToyOS Section
+
+#[cfg(target_os = "toyos")]
+#[inline]
+fn get_core_ids_helper() -> Option<Vec<CoreId>> {
+    toyos::get_core_ids()
+}
+
+#[cfg(target_os = "toyos")]
+#[inline]
+fn set_for_current_helper(core_id: CoreId) -> bool {
+    toyos::set_for_current(core_id)
+}
+
+#[cfg(target_os = "toyos")]
+mod toyos {
+    use toyos_abi::syscall::{thread_affinity, thread_set_affinity, CPU_MASK_WORDS};
+
+    use super::CoreId;
+
+    /// The CPUs the calling thread's mask names, by the kernel's index.
+    pub fn get_core_ids() -> Option<Vec<CoreId>> {
+        let mask = thread_affinity(0).ok()?;
+        Some(
+            (0..CPU_MASK_WORDS * 64)
+                .filter(|&cpu| mask[cpu / 64] & 1 << (cpu % 64) != 0)
+                .map(|id| CoreId { id })
+                .collect(),
+        )
+    }
+
+    /// Pin the calling thread to `core_id` alone. A CPU the kernel does not
+    /// count is refused, and answers `false`.
+    pub fn set_for_current(core_id: CoreId) -> bool {
+        if core_id.id >= CPU_MASK_WORDS * 64 {
+            return false;
+        }
+        let mut mask = [0u64; CPU_MASK_WORDS];
+        mask[core_id.id / 64] = 1 << (core_id.id % 64);
+        thread_set_affinity(0, &mask).is_ok()
+    }
+}
+
 // Stub Section
 
 #[cfg(not(any(
@@ -688,7 +731,8 @@ mod netbsd {
     target_os = "windows",
     target_os = "macos",
     target_os = "freebsd",
-    target_os = "netbsd"
+    target_os = "netbsd",
+    target_os = "toyos"
 )))]
 #[inline]
 fn get_core_ids_helper() -> Option<Vec<CoreId>> {
@@ -701,7 +745,8 @@ fn get_core_ids_helper() -> Option<Vec<CoreId>> {
     target_os = "windows",
     target_os = "macos",
     target_os = "freebsd",
-    target_os = "netbsd"
+    target_os = "netbsd",
+    target_os = "toyos"
 )))]
 #[inline]
 fn set_for_current_helper(_core_id: CoreId) -> bool {
