@@ -37,6 +37,9 @@
 ))]
 extern crate libc;
 
+#[cfg(target_os = "toyos")]
+extern crate toyos_abi;
+
 #[cfg_attr(all(not(test), not(target_os = "macos")), allow(unused_extern_crates))]
 extern crate num_cpus;
 
