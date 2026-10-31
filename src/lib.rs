@@ -703,9 +703,15 @@ mod toyos {
 
     use super::CoreId;
 
+    /// The calling thread, as the affinity calls name a thread: by its id,
+    /// which ToyOS keeps in the thread's control block.
+    fn me() -> u64 {
+        u64::from(toyos_abi::current_tid().0)
+    }
+
     /// The CPUs the calling thread's mask names, by the kernel's index.
     pub fn get_core_ids() -> Option<Vec<CoreId>> {
-        let mask = thread_affinity(0).ok()?;
+        let mask = thread_affinity(me()).ok()?;
         Some(
             (0..CPU_MASK_WORDS * 64)
                 .filter(|&cpu| mask[cpu / 64] & 1 << (cpu % 64) != 0)
@@ -722,7 +728,7 @@ mod toyos {
         }
         let mut mask = [0u64; CPU_MASK_WORDS];
         mask[core_id.id / 64] = 1 << (core_id.id % 64);
-        thread_set_affinity(0, &mask).is_ok()
+        thread_set_affinity(me(), &mask).is_ok()
     }
 }
 
