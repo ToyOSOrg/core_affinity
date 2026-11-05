@@ -39,6 +39,8 @@ extern crate libc;
 
 #[cfg(target_os = "toyos")]
 extern crate toyos_abi;
+#[cfg(target_os = "toyos")]
+extern crate toyos as toyos_sdk;
 
 #[cfg_attr(all(not(test), not(target_os = "macos")), allow(unused_extern_crates))]
 extern crate num_cpus;
@@ -704,9 +706,9 @@ mod toyos {
     use super::CoreId;
 
     /// The calling thread, as the affinity calls name a thread: by its id,
-    /// which ToyOS keeps in the thread's control block.
+    /// which the ToyOS SDK keeps in the thread's control block.
     fn me() -> u64 {
-        u64::from(toyos_abi::current_tid().0)
+        u64::from(::toyos_sdk::tls::current_tid().0)
     }
 
     /// The CPUs the calling thread's mask names, by the kernel's index.
